@@ -1,0 +1,1782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DayStack — Plan your week, one block at a time</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F5F7FA;
+    --card:#FFFFFF;
+    --ink:#1F2A44;
+    --ink-soft:#5B6478;
+    --ink-faint:#9AA3B5;
+    --coral:#FF6B5B;
+    --coral-soft:#FFE3DE;
+    --mint:#3FBF93;
+    --mint-soft:#DCF6EC;
+    --sun:#FFC857;
+    --sun-soft:#FFF1D2;
+    --lavender:#8E7CC3;
+    --lavender-soft:#EBE5F7;
+    --grey:#8A93A6;
+    --grey-soft:#E7E9EE;
+    --line:#E3E7EF;
+    --line-strong:#CBD2E1;
+    --radius:14px;
+    --radius-sm:9px;
+    --shadow:0 2px 10px rgba(31,42,68,0.06), 0 1px 2px rgba(31,42,68,0.04);
+    --rowh:24px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    letter-spacing:-0.01em;
+  }
+  .mono{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;letter-spacing:0;}
+  button{font-family:inherit;}
+
+  /* ---------- shell ---------- */
+  .app-shell{max-width:1320px;margin:0 auto;padding:18px 22px 60px;}
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:16px;margin-bottom:18px;flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand-mark{
+    width:38px;height:38px;border-radius:10px;
+    background:linear-gradient(155deg,var(--coral),var(--sun));
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:var(--shadow);flex-shrink:0;
+  }
+  .brand-mark span{font-size:18px;}
+  .brand-text h1{font-size:21px;margin:0;line-height:1;color:var(--ink);}
+  .brand-text small{font-size:11.5px;color:var(--ink-soft);letter-spacing:.02em;}
+
+  .tabs{display:flex;gap:6px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px;box-shadow:var(--shadow);}
+  .tab-btn{
+    border:none;background:transparent;padding:8px 16px;border-radius:999px;
+    font-size:13.5px;font-weight:600;color:var(--ink-soft);cursor:pointer;
+    transition:.15s;
+  }
+  .tab-btn.active{background:var(--ink);color:#fff;}
+  .tab-btn:hover:not(.active){background:var(--paper);color:var(--ink);}
+
+  .stat-chip{
+    display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);
+    border-radius:999px;padding:7px 16px;box-shadow:var(--shadow);font-size:13px;font-weight:600;
+  }
+  .stat-chip .stat{display:flex;align-items:center;gap:5px;}
+  .stat-chip .divider{width:1px;height:16px;background:var(--line-strong);}
+
+  .page{display:none;}
+  .page.active{display:block;}
+
+  /* ---------- dashboard layout ---------- */
+  .dash-grid{display:grid;grid-template-columns:1fr 270px;gap:18px;align-items:start;}
+  @media (max-width: 980px){.dash-grid{grid-template-columns:1fr;}}
+
+  .panel{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);
+  }
+  .panel-pad{padding:16px 18px;}
+
+  .cal-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:10px;
+  }
+  .week-nav{display:flex;align-items:center;gap:10px;}
+  .nav-btn{
+    width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:#fff;
+    cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;color:var(--ink);
+  }
+  .nav-btn:hover{background:var(--paper);}
+  .week-label{font-weight:700;font-size:14.5px;}
+  .week-label .yr{color:var(--ink-soft);font-weight:500;}
+  .today-btn{
+    border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 13px;font-size:12.5px;
+    font-weight:600;cursor:pointer;color:var(--ink-soft);
+  }
+  .today-btn:hover{color:var(--ink);border-color:var(--line-strong);}
+  .viewtoggle{display:flex;gap:4px;background:var(--paper);border-radius:999px;padding:3px;}
+  .viewtoggle button{border:none;background:transparent;padding:6px 13px;border-radius:999px;font-size:12.5px;font-weight:600;color:var(--ink-soft);cursor:pointer;}
+  .viewtoggle button.active{background:#fff;color:var(--ink);box-shadow:var(--shadow);}
+
+  /* week grid */
+  .week-wrap{overflow:auto;max-height:620px;}
+  .week-grid{display:grid;grid-template-columns:56px repeat(7,1fr);min-width:760px;}
+  .corner{position:sticky;top:0;left:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);}
+  .day-head{
+    position:sticky;top:0;z-index:4;background:var(--card);border-bottom:1px solid var(--line);
+    border-left:1px solid var(--line);padding:7px 6px 6px;text-align:center;
+  }
+  .day-head .dname{font-size:11.5px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;}
+  .day-head .ddate{font-size:15px;font-weight:700;margin-top:3px;}
+  .day-head.is-today .ddate{color:var(--coral);}
+  .day-head input.reminder{
+    margin-top:4px;width:100%;border:none;border-bottom:1px solid var(--line);background:transparent;
+    border-radius:0;font-size:10.5px;font-weight:500;color:var(--ink-soft);padding:2px 2px 3px;text-align:center;
+    font-family:'Inter';transition:.15s;
+  }
+  .day-head input.reminder::placeholder{color:#fff;}
+  .day-head input.reminder:hover,.day-head input.reminder:focus{border-bottom-color:var(--line-strong);color:var(--ink);outline:none;}
+  .day-head input.reminder:focus::placeholder{color:var(--ink-faint);}
+  .day-head input.reminder.exam-day{
+    border-bottom:1.5px solid var(--coral);color:var(--coral);
+    font-weight:800;
+  }
+  .day-head input.reminder.exam-day::placeholder{color:var(--coral);}
+
+  .time-col{position:sticky;left:0;z-index:2;background:var(--card);}
+  .time-col .tick{position:absolute;left:0;right:4px;text-align:right;font-size:10px;color:var(--ink-faint);transform:translateY(-6px);font-family:'Inter',sans-serif;font-weight:500;font-variant-numeric:tabular-nums;}
+
+  .day-col{position:relative;border-left:1px solid var(--line);background:repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--rowh)*2 - 1px), var(--line) calc(var(--rowh)*2 - 1px), var(--line) calc(var(--rowh)*2));}
+  .day-col.is-today{background-color:#FFFBF6;}
+  .day-col.dropok{outline:2px dashed var(--mint);outline-offset:-2px;}
+
+  .block{
+    position:absolute;left:3px;right:3px;border-radius:7px;padding:3px 6px;overflow:hidden;
+    font-size:10.8px;line-height:1.25;cursor:default;border:1px solid rgba(0,0,0,0.06);
+  }
+  .block .bname{font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10.5px;}
+  .block .btime{font-size:9px;opacity:.75;font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;}
+  .block .bphase{font-size:9.5px;opacity:.92;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;}
+  .block.fixed{background:var(--grey-soft);color:#454D5C;cursor:grab;}
+  .block.task{cursor:grab;box-shadow:0 1px 3px rgba(0,0,0,0.08);}
+  .block.dragging{opacity:.4;}
+  .block.task.done{opacity:.55;}
+  .block.task.done::after{content:"✓";position:absolute;top:2px;right:5px;font-size:11px;}
+  .block.task.overdue{border:1px dashed var(--coral);}
+  .block.task .stampmark{position:absolute;bottom:2px;right:5px;font-size:10px;}
+
+  .now-line{position:absolute;left:0;right:0;height:0;border-top:2px solid var(--coral);z-index:3;}
+  .now-line::before{content:"";position:absolute;left:-4px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--coral);}
+
+  /* legend */
+  .legend{display:flex;gap:14px;padding:10px 18px;border-top:1px solid var(--line);flex-wrap:wrap;font-size:12px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .swatch{width:11px;height:11px;border-radius:3px;display:inline-block;}
+
+  /* sidebar */
+  .side-section{margin-bottom:14px;}
+  .side-title{font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);margin:0 0 10px;}
+  .gam-row{display:flex;align-items:center;justify-content:space-between;background:var(--paper);border-radius:10px;padding:10px 12px;margin-bottom:8px;}
+  .gam-row .label{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;}
+  .gam-row .val{font-weight:800;font-size:15px;font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;}
+  .stampgrid{display:flex;flex-wrap:wrap;gap:6px;}
+  .stamp{
+    width:38px;height:38px;border-radius:50%;background:#fff;border:2px dashed var(--line-strong);
+    display:flex;align-items:center;justify-content:center;font-size:17px;position:relative;
+  }
+  .stamp .ct{position:absolute;bottom:-4px;right:-4px;background:var(--coral);color:#fff;font-size:9px;font-weight:700;border-radius:50%;width:15px;height:15px;display:flex;align-items:center;justify-content:center;}
+  .stamp.empty{opacity:.35;border-style:dotted;}
+  .checklist{display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;}
+  .checklist-item{display:flex;align-items:flex-start;gap:8px;font-size:13px;padding:5px 6px;border-radius:8px;}
+  .checklist-item:hover{background:var(--paper);}
+  .checklist-item input[type=checkbox]{margin-top:2px;width:15px;height:15px;accent-color:var(--mint);cursor:pointer;flex-shrink:0;}
+  .checklist-item .ctext{flex:1;word-break:break-word;line-height:1.3;}
+  .checklist-item.done .ctext{color:var(--ink-faint);text-decoration:line-through;}
+  .checklist-item .cdel{border:none;background:transparent;color:var(--ink-faint);cursor:pointer;font-size:13px;padding:0 3px;flex-shrink:0;}
+  .checklist-item .cdel:hover{color:var(--coral);}
+  .checklist-empty{font-size:12px;color:var(--ink-faint);padding:4px 6px;}
+  .checklist-add input{
+    width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:12.5px;
+    margin-top:8px;font-family:'Inter';
+  }
+  .checklist-add input:focus{outline:none;border-color:var(--lavender);}
+
+  textarea#notesBox{
+    width:100%;min-height:110px;border:1px solid var(--line);border-radius:10px;padding:10px;
+    font-family:'Inter';font-size:13px;resize:vertical;background:var(--sun-soft);color:var(--ink);
+  }
+  textarea#notesBox:focus{outline:2px solid var(--sun);}
+
+  /* month view */
+  .month-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+  .month-dayname{background:var(--card);padding:8px 4px;text-align:center;font-size:11px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;}
+  .month-cell{background:#fff;min-height:84px;padding:6px;font-size:11.5px;position:relative;}
+  .month-cell .mnum{font-weight:700;font-size:12px;color:var(--ink-soft);}
+  .month-cell.today .mnum{color:var(--coral);}
+  .month-cell.othermonth{background:#FAFBFC;color:var(--ink-faint);}
+  .month-chip{margin-top:3px;border-radius:5px;padding:2px 5px;font-size:10px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;}
+
+  /* ---------- table pages ---------- */
+  .page-head{margin-bottom:16px;}
+  .page-head h2{font-size:23px;margin:0 0 4px;}
+  .page-head p{margin:0;color:var(--ink-soft);font-size:13.5px;max-width:680px;}
+  .sheet-wrap{overflow-x:auto;border-radius:var(--radius);}
+  table.sheet{width:100%;border-collapse:collapse;background:#fff;font-size:13px;}
+  table.sheet th{
+    background:var(--paper);text-align:left;padding:9px 10px;font-size:12px;font-weight:600;
+    letter-spacing:0;color:var(--ink-soft);border-bottom:1px solid var(--line);white-space:nowrap;
+  }
+  .info-icon{
+    display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;
+    background:var(--line-strong);color:#fff;font-size:9.5px;font-weight:700;font-style:normal;
+    margin-left:4px;cursor:help;vertical-align:middle;
+  }
+  .info-icon:hover{background:var(--lavender);}
+  table.sheet td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  table.sheet input[type=text], table.sheet input[type=date], table.sheet input[type=number], table.sheet input[type=time]{
+    border:1px solid transparent;background:transparent;border-radius:6px;padding:6px 7px;font-size:13px;width:100%;
+    font-family:'Inter';color:var(--ink);
+  }
+  table.sheet input:hover{border-color:var(--line);}
+  table.sheet input:focus{border-color:var(--lavender);outline:none;background:#fff;}
+  .daychips{display:flex;gap:3px;}
+  .daychip{
+    width:24px;height:24px;border-radius:6px;border:1px solid var(--line);background:#fff;font-size:10px;font-weight:700;
+    cursor:pointer;color:var(--ink-faint);display:flex;align-items:center;justify-content:center;
+  }
+  .daychip.on{background:var(--lavender);color:#fff;border-color:var(--lavender);}
+  input[type=color].swatchpick{width:30px;height:28px;border:1px solid var(--line);border-radius:6px;padding:2px;cursor:pointer;background:#fff;}
+  .row-del{border:none;background:transparent;color:var(--ink-faint);cursor:pointer;font-size:15px;padding:4px 6px;border-radius:6px;}
+  .row-del:hover{color:var(--coral);background:var(--coral-soft);}
+  .sheet-actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
+  .btn{
+    border:none;border-radius:10px;padding:10px 18px;font-size:13.5px;font-weight:700;cursor:pointer;
+    display:inline-flex;align-items:center;gap:7px;
+  }
+  .btn-primary{background:var(--ink);color:#fff;}
+  .btn-primary:hover{background:#33405e;}
+  .btn-ghost{background:#fff;border:1px solid var(--line);color:var(--ink);}
+  .btn-ghost:hover{background:var(--paper);}
+  .btn-accent{background:var(--coral);color:#fff;}
+  .btn-accent:hover{background:#ff584a;}
+
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:700;}
+  .pill-warn{background:var(--coral-soft);color:#B8402F;}
+  .pill-ok{background:var(--mint-soft);color:#1F7A57;}
+
+  .banner{
+    border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-start;
+  }
+  .banner.warn{background:var(--coral-soft);color:#8C2E20;}
+  .banner.ok{background:var(--mint-soft);color:#1B6B4D;}
+  .banner b{display:block;margin-bottom:2px;}
+
+  /* modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(31,42,68,0.45);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
+  .modal-overlay.show{display:flex;}
+  .modal{background:#fff;border-radius:16px;padding:24px;width:380px;max-width:90vw;box-shadow:0 12px 40px rgba(0,0,0,0.25);text-align:center;}
+  .btn-textlink{border:none;background:transparent;color:var(--ink-faint);font-size:11.5px;cursor:pointer;text-decoration:underline;padding:2px;}
+  .btn-textlink:hover{color:var(--coral);}
+  .modal h3{margin:0 0 4px;font-size:18px;}
+  .modal .sub{color:var(--ink-soft);font-size:12.5px;margin-bottom:16px;}
+  .timer-ring{font-family:'Inter',sans-serif;font-size:34px;font-weight:700;margin:8px 0 14px;color:var(--ink);font-variant-numeric:tabular-nums;}
+  .star-rate{display:flex;justify-content:center;gap:6px;margin:12px 0 4px;}
+  .star-rate.small{justify-content:flex-start;gap:2px;margin:0;}
+  .star-rate .star-btn{font-size:26px;color:var(--line-strong);cursor:pointer;transition:.1s;line-height:1;}
+  .star-rate.small .star-btn{font-size:15px;}
+  .star-rate .star-btn:hover{color:var(--sun);transform:scale(1.15);}
+  .star-rate .star-btn.lit{color:var(--sun);}
+  .modal .modal-actions{display:flex;flex-direction:column;gap:8px;}
+  .modal-close{position:absolute;}
+
+  .toast{
+    position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;font-weight:600;
+    opacity:0;transition:.25s;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,0.2);pointer-events:none;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  .footnote{margin-top:18px;font-size:11.5px;color:var(--ink-faint);text-align:center;}
+  @media (max-width:640px){
+    .topbar{flex-direction:column;align-items:flex-start;}
+    .dash-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark"><span>🗓️</span></div>
+      <div class="brand-text">
+        <h1>DayStack</h1>
+        <small>your week, stacked into blocks</small>
+      </div>
+    </div>
+    <div class="tabs" id="tabBar">
+      <button class="tab-btn active" data-page="dashboard">Weekly Plan</button>
+      <button class="tab-btn" data-page="fixed">Fixed Schedule</button>
+      <button class="tab-btn" data-page="variable">Variable Tasks</button>
+    </div>
+    <div class="stat-chip">
+      <span class="stat">🔥 <span id="streakVal">0</span></span>
+      <span class="divider"></span>
+      <span class="stat">⭐ <span id="starVal">0</span></span>
+    </div>
+    <button class="today-btn" id="settingsBtn">⚙️ Study Settings</button>
+  </div>
+
+  <!-- ================= DASHBOARD ================= -->
+  <div class="page active" id="page-dashboard">
+    <div class="dash-grid">
+      <div class="panel">
+        <div class="cal-header">
+          <div class="viewtoggle">
+            <button id="vtWeek" class="active">Week</button>
+            <button id="vtMonth">Month</button>
+          </div>
+          <div class="week-nav" id="weekNavWrap">
+            <button class="nav-btn" id="prevBtn">‹</button>
+            <div class="week-label" id="weekLabel"></div>
+            <button class="nav-btn" id="nextBtn">›</button>
+          </div>
+          <button class="today-btn" id="todayBtn">Today</button>
+          <button class="today-btn" id="hideSleepBtn">🌙 Hide sleep</button>
+        </div>
+
+        <div id="weekView">
+          <div class="week-wrap" id="weekWrap">
+            <div class="week-grid" id="weekGrid"></div>
+          </div>
+          <div class="legend">
+            <span><i class="swatch" style="background:var(--grey-soft);border:1px solid var(--grey)"></i>Fixed schedule (grey)</span>
+            <span><i class="swatch" style="background:#fff;border:1px solid var(--line-strong)"></i>Free time</span>
+            <span><i class="swatch" style="background:var(--coral)"></i>Variable task (your colour)</span>
+            <span style="margin-left:auto;color:var(--ink-faint)">Drag any block to move it · click a block for details · click empty space to add a quick task</span>
+          </div>
+        </div>
+
+        <div id="monthView" style="display:none;">
+          <div class="panel-pad">
+            <div class="month-grid" id="monthGrid"></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="panel panel-pad side-section">
+          <div class="side-title">Daily checklist <span style="color:var(--ink-faint);font-weight:500;text-transform:none;font-size:11px;">(today)</span></div>
+          <div class="checklist" id="dailyChecklist"></div>
+          <div class="checklist-add">
+            <input type="text" id="dailyChecklistInput" placeholder="+ add a to-do for today">
+          </div>
+        </div>
+        <div class="panel panel-pad side-section">
+          <div class="side-title">Weekly checklist</div>
+          <div class="checklist" id="weeklyChecklist"></div>
+          <div class="checklist-add">
+            <input type="text" id="weeklyChecklistInput" placeholder="+ add a to-do for the week">
+          </div>
+        </div>
+        <div class="panel panel-pad side-section">
+          <div class="side-title">Stamp collection</div>
+          <div class="stampgrid" id="stampGrid"></div>
+          <div style="font-size:11px;color:var(--ink-faint);margin-top:8px;">Earn 1 ⭐ per completed 30-min block. Every 4 ⭐ unlocks a stamp.</div>
+        </div>
+        <div class="panel panel-pad side-section">
+          <div class="side-title">Quick Notes</div>
+          <textarea id="notesBox" placeholder="e.g. take vitamins, drink water, 'small steps every day' …"></textarea>
+        </div>
+        <div class="panel panel-pad side-section" id="unscheduledPanel" style="display:none;">
+          <div class="side-title">⚠️ Couldn't fit</div>
+          <div id="unscheduledList" style="font-size:12px;color:var(--ink-soft);"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= FIXED SCHEDULE ================= -->
+  <div class="page" id="page-fixed">
+    <div class="page-head">
+      <h2>Fixed schedule</h2>
+      <p>Things that don't move — school, sleep, CCA, tuition, meals. Key everything in at once like a spreadsheet, then save to update your calendar. Fixed blocks always show up grey on the calendar, and you can drag them around too if something changes last-minute.</p>
+    </div>
+    <div class="sheet-wrap panel">
+      <table class="sheet">
+        <thead>
+          <tr><th style="width:20%">Name</th><th style="width:24%">Days</th><th>Start</th><th>End</th><th style="width:40px"></th></tr>
+        </thead>
+        <tbody id="fixedBody"></tbody>
+      </table>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" id="addFixedRow">+ Add row</button>
+      <button class="btn btn-primary" id="saveFixed">Save &amp; update calendar</button>
+    </div>
+  </div>
+
+  <!-- ================= VARIABLE TASKS ================= -->
+  <div class="page" id="page-variable">
+    <div class="page-head">
+      <h2>Variable tasks</h2>
+      <p>One-off work with a deadline. Tell DayStack how many 30-min blocks it needs and how many sessions to split it into — it'll slot the sessions into your free time, soonest deadlines and top priority first. Mark something as <b>Exam / Test</b> and "Sessions" becomes chapter count: DayStack studies each chapter in full across the first ~70% of your runway, then schedules a short revision pass per chapter (about a quarter of the time) in the final 2–4 days before it.</p>
+    </div>
+    <div id="scheduleBanner"></div>
+    <div class="sheet-wrap panel">
+      <table class="sheet">
+        <thead>
+          <tr>
+            <th style="width:17%">Task name</th>
+            <th style="width:13%">Type</th>
+            <th>Due date <span class="info-icon" title="This is the exam date if the task is marked as Exam / Test.">i</span></th>
+            <th>Duration <span class="info-icon" title="How much time this needs, in minutes. For Exam / Test tasks, set this per-chapter instead via the chapters editor.">i</span></th>
+            <th>Sessions <span class="info-icon" title="How many sessions to split the work into. For Exam / Test tasks this is set automatically from your chapter list.">i</span></th>
+            <th>Priority <span class="info-icon" title="Used as a tie-breaker when two tasks share a due date. 1 = highest priority.">i</span></th>
+            <th style="width:60px">Colour</th>
+            <th style="width:40px"></th>
+          </tr>
+        </thead>
+        <tbody id="varBody"></tbody>
+      </table>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" id="addVarRow">+ Add row</button>
+      <button class="btn btn-accent" id="genSchedule">⚡ Generate schedule</button>
+    </div>
+  </div>
+
+  <div class="footnote">Demo data lives in this browser tab only — refreshing the page resets it. Built for trying out the scheduling logic, not for storing real homework (yet!).</div>
+</div>
+
+<!-- ================= POMODORO MODAL ================= -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalBox"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   DAYSTACK — scheduling demo
+   ============================================================ */
+
+const DAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const SLOTS_PER_DAY = 48; // 30-min slots, 00:00 -> 24:00
+const STUDY_START_SLOT = 12; // 06:00
+const STUDY_END_SLOT = 46;   // up to 23:00 (exclusive end of allowed window)
+const ROWH = 24;
+const TASK_PALETTE = ['#FF6B5B','#3FBF93','#8E7CC3','#4D8DEE','#FF9F5B','#46B8C2','#D162B4','#7BC142'];
+const ANIMALS = ['🦊','🐇','🐘','🦦','🐼','🐨','🦉','🐸'];
+
+let uidCounter = 1;
+function uid(){ return 'id' + (uidCounter++); }
+
+/* ---------- date helpers ---------- */
+function startOfDay(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
+function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+function dateKey(d){
+  const x=startOfDay(d);
+  return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');
+}
+function parseDate(str){ const [y,m,d]=str.split('-').map(Number); return new Date(y,m-1,d); }
+function mondayOf(d){
+  const x=startOfDay(d);
+  const dow=(x.getDay()+6)%7; // Mon=0..Sun=6
+  return addDays(x,-dow);
+}
+function slotLabel(i){
+  const h=Math.floor(i/2), m=(i%2)*30;
+  const hh=String(h).padStart(2,'0'), mm=String(m).padStart(2,'0');
+  return hh+':'+mm;
+}
+function fmtDateShort(d){ return d.toLocaleDateString('en-SG',{day:'numeric',month:'short'}); }
+
+/* ---------- state ---------- */
+let weekStart = mondayOf(new Date());
+let viewStart = 0, viewEnd = SLOTS_PER_DAY; // visible slot range on the calendar (0..48 = full day)
+let monthCursor = startOfDay(new Date()); monthCursor.setDate(1);
+let currentView = 'week';
+
+let fixedSchedules = [
+  {id:uid(), name:'Sleep',        days:[0,1,2,3,4,5,6], start:'23:00', end:'07:00', color:'#8E7CC3'},
+  {id:uid(), name:'School',       days:[0],             start:'08:00', end:'14:00', color:'#4D8DEE'},
+  {id:uid(), name:'CCA',          days:[3],             start:'15:00', end:'17:00', color:'#46B8C2'},
+  {id:uid(), name:'Math tuition', days:[5],             start:'10:00', end:'12:00', color:'#FF9F5B'},
+  {id:uid(), name:'Church',       days:[6],             start:'08:00', end:'12:00', color:'#D162B4'},
+  {id:uid(), name:'Dinner',       days:[0,1,2,3,4,5,6], start:'19:00', end:'20:00', color:'#7BC142'},
+];
+
+let variableTasks = [
+  {id:uid(), name:'Math Homework', type:'task', dueDate:dateKey(addDays(new Date(),2)), durationMin:120, sessions:2, priority:1, color:TASK_PALETTE[0]},
+  {id:uid(), name:'Essay Draft',   type:'task', dueDate:dateKey(addDays(new Date(),6)), durationMin:90, sessions:1, priority:2, color:TASK_PALETTE[2]},
+  {id:uid(), name:'Science Exam',  type:'exam', dueDate:dateKey(addDays(new Date(),10)), priority:1, color:TASK_PALETTE[1],
+    chapters:[
+      {name:'Cell Biology',        durationMin:90,  difficulty:3},
+      {name:'Genetics',            durationMin:120, difficulty:5},
+      {name:'Forces & Motion',     durationMin:60,  difficulty:2},
+      {name:'Chemical Reactions',  durationMin:90,  difficulty:4},
+    ],
+    chapterConfidence:{}},
+];
+
+let assignments = [];      // {id, taskId, date, startSlot, len, sessionIndex, overdue}
+let completedSlots = new Set(); // "date|slot"
+let stamps = [];           // collected animal emojis
+let dayReminders = {};     // dateStr -> text
+let lastUnscheduled = [];
+let weeklyChecklist = [
+  {id:uid(), text:'Pack bag for tuition on Saturday', done:false},
+  {id:uid(), text:'Email teacher about CCA clash', done:false},
+];
+let dailyChecklist = [
+  {id:uid(), text:'Drink water', done:false},
+  {id:uid(), text:'Pack vitamins', done:false},
+];
+
+/* ---------- scheduling engine ---------- */
+function timeToSlot(t){ const [h,m]=t.split(':').map(Number); return h*2 + (m>=30?1:0); }
+function slotToTime(slot){
+  slot = ((slot%48)+48)%48;
+  const h=Math.floor(slot/2), m=(slot%2)*30;
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+}
+function dayIndexFromDate(dateStr){ return (parseDate(dateStr).getDay()+6)%7; }
+
+function fixedOccupancyForDow(dow){
+  const occ = new Array(SLOTS_PER_DAY).fill(null);
+  fixedSchedules.forEach(fs=>{
+    if(!fs.days.includes(dow)) return;
+    const s = timeToSlot(fs.start), e = timeToSlot(fs.end);
+    if (e>s){
+      for(let i=s;i<e;i++) occ[i]=fs;
+    } else { // wraps past midnight
+      for(let i=s;i<SLOTS_PER_DAY;i++) occ[i]=fs;
+      for(let i=0;i<e;i++) occ[i]=fs;
+    }
+  });
+  return occ;
+}
+
+function gridForDate(dateStr, assignList){
+  const d = parseDate(dateStr);
+  const dow = (d.getDay()+6)%7;
+  const grid = fixedOccupancyForDow(dow); // array of fixed-obj-or-null
+  const taskGrid = new Array(SLOTS_PER_DAY).fill(null);
+  assignList.filter(a=>a.date===dateStr).forEach(a=>{
+    for(let i=a.startSlot;i<a.startSlot+a.len;i++) taskGrid[i]=a;
+  });
+  return {fixed:grid, task:taskGrid};
+}
+
+function isFree(fixedRow, taskRow, idx){ return !fixedRow[idx] && !taskRow[idx]; }
+
+function findFreeRun(fixedRow, taskRow, len, rangeStart, rangeEnd){
+  for(let i=rangeStart;i<=rangeEnd-len;i++){
+    let ok=true;
+    for(let k=0;k<len;k++){ if(!isFree(fixedRow,taskRow,i+k)){ ok=false; break; } }
+    if(ok) return i;
+  }
+  return -1;
+}
+
+const MAX_CONSECUTIVE_STUDY_SLOTS = 8; // 4 hours — beyond this, require at least a 30-min break
+
+// like findFreeRun, but also refuses a slot if it would create more than 4 hours of
+// back-to-back study (existing task blocks immediately touching this one, on either side)
+function findFreeRunWithBreak(fixedRow, taskRow, len, rangeStart, rangeEnd){
+  for(let i=rangeStart;i<=rangeEnd-len;i++){
+    let ok=true;
+    for(let k=0;k<len;k++){ if(!isFree(fixedRow,taskRow,i+k)){ ok=false; break; } }
+    if(!ok) continue;
+    if(len < MAX_CONSECUTIVE_STUDY_SLOTS){ // a single session this long is already its own marathon — let it through
+      let leftRun=0;
+      for(let p=i-1;p>=0 && taskRow[p];p--) leftRun++;
+      let rightRun=0;
+      for(let p=i+len;p<taskRow.length && taskRow[p];p++) rightRun++;
+      if(leftRun + len + rightRun > MAX_CONSECUTIVE_STUDY_SLOTS) continue; // would bridge into a >4h marathon — skip, keep looking
+    }
+    return i;
+  }
+  return -1;
+}
+
+function splitBlocks(total, sessions){
+  sessions = Math.max(1, Math.min(sessions||1, total||1));
+  const base = Math.floor(total/sessions);
+  const rem = total % sessions;
+  const sizes=[];
+  for(let i=0;i<sessions;i++) sizes.push(base + (i<rem?1:0));
+  return sizes.filter(s=>s>0);
+}
+
+const NOW_BUFFER_SLOTS = 2;     // require at least 1 hour of notice before a task can start today
+const SCHOOL_BUFFER_SLOTS = 4;  // require at least 2 hours after school ends before the first task can start
+
+// user-configurable study settings (see the ⚙️ Study Settings panel) — hours converted to 30-min slots
+let schoolDayCapHours = 4;
+let nonSchoolDayCapHours = 6;
+
+// if "School" is a fixed schedule on this date, return the earliest slot allowed afterwards (school end + buffer)
+function schoolBufferFloorForDate(dateStr){
+  const dow = dayIndexFromDate(dateStr);
+  let floor = 0;
+  fixedSchedules.forEach(fs=>{
+    if(!fs.days.includes(dow)) return;
+    if(!fs.name.toLowerCase().includes('school')) return;
+    const s = timeToSlot(fs.start), e = timeToSlot(fs.end);
+    const endSlot = (e>s) ? e : SLOTS_PER_DAY; // ignore the unlikely case of school wrapping past midnight
+    floor = Math.max(floor, endSlot + SCHOOL_BUFFER_SLOTS);
+  });
+  return floor;
+}
+
+// total slots already claimed by any variable-task block on this day
+function dayTaskLoad(taskRow){
+  let c=0;
+  for(let i=0;i<taskRow.length;i++) if(taskRow[i]) c++;
+  return c;
+}
+
+// place a single chunk of `len` slots, searching forward day-by-day from `searchFrom` through `windowEnd` (inclusive).
+// returns the Date it was placed on (so the caller can push the next search start), or null if it didn't fit.
+// tries once respecting the daily study cap (soft preference, see Study Settings), then again ignoring it if nothing else fit.
+function placeChunk(task, assignments, len, searchFrom, windowEnd, extraFields){
+  const strict = placeChunkPass(task, assignments, len, searchFrom, windowEnd, extraFields, true);
+  if(strict) return strict;
+  return placeChunkPass(task, assignments, len, searchFrom, windowEnd, extraFields, false);
+}
+
+function placeChunkPass(task, assignments, len, searchFrom, windowEnd, extraFields, respectDayCap){
+  let cursor = new Date(searchFrom);
+  const realNow = new Date();
+  const todayKey = dateKey(realNow);
+  const nowSlot = realNow.getHours()*2 + (realNow.getMinutes()>=30?1:0);
+  while(cursor <= windowEnd){
+    const ds = dateKey(cursor);
+    let rangeStart = STUDY_START_SLOT;
+    if(ds === todayKey) rangeStart = Math.max(rangeStart, nowSlot + NOW_BUFFER_SLOTS); // never schedule into the past or the next hour
+    const schoolFloor = schoolBufferFloorForDate(ds);
+    rangeStart = Math.max(rangeStart, schoolFloor); // never schedule right after school ends
+    if(rangeStart <= STUDY_END_SLOT - len){
+      const {fixed, task:taskRow} = gridForDate(ds, assignments);
+      const isSchoolDay = schoolFloor > 0;
+      const dayCapSlots = (isSchoolDay ? schoolDayCapHours : nonSchoolDayCapHours) * 2;
+      if(respectDayCap){
+        if(dayTaskLoad(taskRow) + len > dayCapSlots){
+          cursor = addDays(cursor,1);
+          continue; // over today's study-time cap — try a different day first
+        }
+      }
+      const idx = findFreeRunWithBreak(fixed, taskRow, len, rangeStart, STUDY_END_SLOT);
+      if(idx!==-1){
+        assignments.push(Object.assign({id:uid(), taskId:task.id, date:ds, startSlot:idx, len}, extraFields));
+        return cursor;
+      }
+    }
+    cursor = addDays(cursor,1);
+  }
+  return null;
+}
+
+// ---- regular one-off task: even split across the days remaining until the due date ----
+function scheduleRegularTask(task, assignments, today){
+  const unscheduled = [];
+  const due = parseDate(task.dueDate);
+  const totalBlocks = Math.max(1, Math.ceil((Number(task.durationMin)||30)/30));
+  const sizes = splitBlocks(totalBlocks, Number(task.sessions)||1);
+  let cursorStart = today;
+
+  sizes.forEach((len, sIdx)=>{
+    const horizon = addDays(due > today ? due : today, 14); // small grace window past the deadline
+    const placedOn = placeChunk(task, assignments, len, cursorStart, horizon,
+      {sessionIndex:sIdx, phase:'task'});
+    if(placedOn){
+      assignments[assignments.length-1].overdue = placedOn > due;
+      cursorStart = addDays(placedOn,1); // spread sessions across different days
+    } else {
+      unscheduled.push({taskName:task.name, len, detail:'session '+(sIdx+1)});
+    }
+  });
+  return unscheduled;
+}
+
+// ---- exam / test: deep-study each chapter across the first ~70% of the runway,
+//      then a short revision pass per chapter (~25% the length) in the final 2-4 days ----
+function examChapters(task){
+  if(Array.isArray(task.chapters) && task.chapters.length) return task.chapters;
+  return [{name:'Chapter 1', durationMin:60, difficulty:3}];
+}
+function getChapterName(task, idx){
+  const chapters = examChapters(task);
+  if(chapters[idx] && chapters[idx].name) return chapters[idx].name;
+  return 'Chapter ' + (idx+1);
+}
+function chapterBlockLen(chapter){
+  return Math.max(1, Math.ceil((Number(chapter.durationMin)||30)/30));
+}
+
+function scheduleExamTask(task, assignments, today){
+  const unscheduled = [];
+  const due = parseDate(task.dueDate);
+  const totalDays = Math.max(1, Math.round((due-today)/86400000) + 1); // inclusive of today and exam day
+  const chapters = examChapters(task);
+  const chapterSizes = chapters.map(chapterBlockLen); // deep-study blocks per chapter, from each chapter's own duration
+
+  // carve the runway into a study phase (~70%) and a revision phase (2-4 days, scaled for short runways)
+  let revisionDays, studyDays;
+  if(totalDays <= 2){ studyDays = totalDays; revisionDays = 0; }
+  else {
+    revisionDays = Math.max(2, Math.min(4, Math.round(totalDays*0.3)));
+    if(revisionDays >= totalDays) revisionDays = Math.max(1, totalDays-1);
+    studyDays = totalDays - revisionDays;
+  }
+  const studyWindowEnd = addDays(today, studyDays-1);
+  const fullWindowEnd = addDays(due, -1) > today ? addDays(due,-1) : today; // don't schedule study/revision on exam day itself
+  const revisionWindowStart = addDays(studyWindowEnd,1);
+
+  // --- phase 1: deep study, one block-chunk per chapter, spread across the study window.
+  //     harder chapters (more difficulty stars) go first, so they get the most runway before the exam. ---
+  const studyOrder = chapters.map((c,idx)=>idx).sort((a,b)=> (chapters[b].difficulty||0) - (chapters[a].difficulty||0));
+  let studyCursor = today;
+  studyOrder.forEach(idx=>{
+    const len = chapterSizes[idx];
+    let placedOn = placeChunk(task, assignments, len, studyCursor, studyWindowEnd,
+      {sessionIndex:idx, phase:'study', overdue:false});
+    if(!placedOn && studyWindowEnd < fullWindowEnd){
+      // study window was full — fall back to any free slot before the exam, flagged as a late study session
+      placedOn = placeChunk(task, assignments, len, studyCursor, fullWindowEnd,
+        {sessionIndex:idx, phase:'study-late', overdue:false});
+    }
+    if(placedOn) studyCursor = addDays(placedOn,1);
+    else unscheduled.push({taskName:task.name, len, detail:'deep study for '+getChapterName(task,idx)});
+  });
+
+  // --- phase 2: quick revision per chapter, ~25% the length, spread across the revision days before the exam ---
+  if(revisionDays>0){
+    const revDayList = [];
+    let dcur = revisionWindowStart < today ? today : revisionWindowStart;
+    while(dcur <= fullWindowEnd){ revDayList.push(new Date(dcur)); dcur = addDays(dcur,1); }
+    if(revDayList.length===0) revDayList.push(fullWindowEnd);
+
+    chapterSizes.forEach((len, idx)=>{
+      const rlen = Math.max(1, Math.round(len*0.25));
+      const targetDay = revDayList[idx % revDayList.length]; // round-robin so chapters don't all stack on day 1
+      const placedOn = placeChunk(task, assignments, rlen, targetDay, fullWindowEnd,
+        {sessionIndex:idx, phase:'revision', overdue:false});
+      if(!placedOn) unscheduled.push({taskName:task.name, len:rlen, detail:'revision for '+getChapterName(task,idx)});
+    });
+  }
+  return unscheduled;
+}
+
+// ---- confidence-driven follow-up revision, triggered after a student rates a completed revision session ----
+// 1-3 stars: schedule another revision within (rating x 24h). 4-5 stars, or under 24h to the exam: one final quick revision.
+function scheduleFollowUpRevision(task, chapterIdx, rating){
+  const now = new Date();
+  const today = startOfDay(now);
+  const due = parseDate(task.dueDate);
+  const daysUntilExam = Math.round((due-today)/86400000);
+  const chapters = examChapters(task);
+  const chapter = chapters[chapterIdx] || {durationMin:30};
+  const revLen = Math.max(1, Math.round(chapterBlockLen(chapter)*0.25));
+  const lastUsableDay = due > today ? addDays(due,-1) : today; // never schedule study on exam day itself
+
+  let windowEnd, phase;
+  if(rating>=4 || daysUntilExam<1){
+    windowEnd = lastUsableDay;
+    phase = 'revision-final';
+  } else {
+    const target = addDays(today, rating); // rating stars ≈ rating x 24h
+    windowEnd = target < lastUsableDay ? target : lastUsableDay;
+    phase = 'revision';
+  }
+  if(windowEnd < today) windowEnd = today;
+  return placeChunk(task, assignments, revLen, today, windowEnd, {sessionIndex:chapterIdx, phase, overdue:false});
+}
+
+function runScheduler(){
+  assignments = [];
+  lastUnscheduled = [];
+  const today = startOfDay(new Date());
+  const sorted = [...variableTasks].sort((a,b)=>{
+    const dueCmp = a.dueDate.localeCompare(b.dueDate);
+    if(dueCmp!==0) return dueCmp;
+    return (a.priority||99)-(b.priority||99);
+  });
+
+  sorted.forEach(task=>{
+    const result = task.type==='exam'
+      ? scheduleExamTask(task, assignments, today)
+      : scheduleRegularTask(task, assignments, today);
+    lastUnscheduled.push(...result);
+  });
+
+  renderUnscheduledPanel();
+  renderWeek();
+  renderMonth();
+}
+
+/* ---------- rendering: week view ---------- */
+function weekDates(){
+  const out=[];
+  for(let i=0;i<7;i++) out.push(addDays(weekStart,i));
+  return out;
+}
+
+function taskById(id){ return variableTasks.find(t=>t.id===id); }
+
+function renderWeekHeader(){
+  const dates = weekDates();
+  const end = addDays(weekStart,6);
+  document.getElementById('weekLabel').innerHTML =
+    fmtDateShort(weekStart) + ' – ' + fmtDateShort(end) + ' <span class="yr">' + weekStart.getFullYear() + '</span>';
+}
+
+function renderWeek(){
+  renderWeekHeader();
+  const grid = document.getElementById('weekGrid');
+  grid.innerHTML = '';
+  const visibleSlots = viewEnd - viewStart;
+  const HEAD_ROW_H = 64;
+  grid.style.gridTemplateRows = `${HEAD_ROW_H}px ${ROWH*visibleSlots}px`;
+
+  // corner
+  const corner = document.createElement('div');
+  corner.className='corner';
+  grid.appendChild(corner);
+
+  const dates = weekDates();
+  const todayStr = dateKey(new Date());
+
+  dates.forEach(d=>{
+    const ds = dateKey(d);
+    const head = document.createElement('div');
+    head.className = 'day-head' + (ds===todayStr ? ' is-today':'');
+
+    const dnameEl = document.createElement('div');
+    dnameEl.className='dname';
+    dnameEl.textContent = DAY_NAMES[(d.getDay()+6)%7];
+    head.appendChild(dnameEl);
+
+    const inp = document.createElement('input');
+    inp.className='reminder'; inp.placeholder='+ reminder';
+
+    const examsToday = variableTasks.filter(t=>t.type==='exam' && t.dueDate===ds);
+    if(examsToday.length){
+      inp.classList.add('exam-day');
+      if(!dayReminders[ds]){
+        dayReminders[ds] = '🔴 ' + examsToday.map(t=>t.name).join(', ') + ' today!';
+      }
+    }
+    inp.value = dayReminders[ds] || '';
+    inp.addEventListener('input', e=>{ dayReminders[ds]=e.target.value; });
+    head.appendChild(inp);
+
+    const ddateEl = document.createElement('div');
+    ddateEl.className='ddate';
+    ddateEl.textContent = d.getDate();
+    head.appendChild(ddateEl);
+
+    grid.appendChild(head);
+  });
+
+  // time column
+  const timeCol = document.createElement('div');
+  timeCol.className='time-col';
+  timeCol.style.height = (ROWH*visibleSlots)+'px';
+  for(let i=viewStart;i<viewEnd;i+=2){
+    const tick=document.createElement('div');
+    tick.className='tick';
+    tick.style.top = ((i-viewStart)*ROWH)+'px';
+    tick.textContent = slotLabel(i);
+    timeCol.appendChild(tick);
+  }
+  grid.appendChild(timeCol);
+
+  dates.forEach(d=>{
+    const ds = dateKey(d);
+    const col = document.createElement('div');
+    col.className = 'day-col' + (ds===todayStr ? ' is-today':'');
+    col.style.height = (ROWH*visibleSlots)+'px';
+    col.dataset.date = ds;
+
+    const {fixed, task:taskRow} = gridForDate(ds, assignments);
+
+    // merge fixed runs (clipped to the visible range)
+    let i=0;
+    while(i<SLOTS_PER_DAY){
+      if(fixed[i]){
+        const fs = fixed[i];
+        let j=i;
+        while(j<SLOTS_PER_DAY && fixed[j]===fs) j++;
+        const block = makeFixedBlock(fs, i, j-i, ds);
+        if(block) col.appendChild(block);
+        i=j;
+      } else i++;
+    }
+    // task blocks (assignments), clipped to the visible range
+    assignments.filter(a=>a.date===ds).forEach(a=>{
+      const block = makeTaskBlock(a);
+      if(block) col.appendChild(block);
+    });
+
+    // now line
+    if(ds===todayStr){
+      const now = new Date();
+      const frac = (now.getHours()*60+now.getMinutes())/30;
+      if(frac>=viewStart && frac<=viewEnd){
+        const line = document.createElement('div');
+        line.className='now-line';
+        line.style.top = ((frac-viewStart)*ROWH)+'px';
+        col.appendChild(line);
+      }
+    }
+
+    // drag/drop targets
+    col.addEventListener('dragover', e=>{ e.preventDefault(); col.classList.add('dropok'); });
+    col.addEventListener('dragleave', ()=> col.classList.remove('dropok'));
+    col.addEventListener('drop', e=>{
+      e.preventDefault();
+      col.classList.remove('dropok');
+      let payload;
+      try{ payload = JSON.parse(e.dataTransfer.getData('text/plain')); }catch(err){ return; }
+      handleDrop(payload, ds, col, e);
+    });
+
+    // click empty space to quick-add a one-off task
+    col.addEventListener('click', e=>{
+      if(e.target !== col) return; // a block (or its children) already handled its own click + stopPropagation
+      const y = e.offsetY;
+      const slot = viewStart + Math.round(y/ROWH);
+      openAddTaskModal(ds, Math.max(0, Math.min(SLOTS_PER_DAY-1, slot)));
+    });
+
+    grid.appendChild(col);
+  });
+}
+
+function makeFixedBlock(fs, startSlot, len, dateStr){
+  const visStart = Math.max(startSlot, viewStart);
+  const visEnd = Math.min(startSlot+len, viewEnd);
+  if(visEnd <= visStart) return null; // fully outside the visible range (e.g. hidden sleep hours)
+  const el = document.createElement('div');
+  el.className='block fixed';
+  el.style.top=((visStart-viewStart)*ROWH)+'px';
+  el.style.height=((visEnd-visStart)*ROWH-2)+'px';
+  el.innerHTML = `<span class="bname">${fs.name}</span><span class="btime">${slotLabel(startSlot)}–${slotLabel(startSlot+len)}</span>`;
+  el.draggable = true;
+  el.dataset.fixedId = fs.id;
+  el.title = fs.name + ' — ' + slotLabel(startSlot) + '–' + slotLabel(startSlot+len) + ' — drag to reschedule, click for details';
+  el.addEventListener('dragstart', e=>{
+    e.dataTransfer.setData('text/plain', JSON.stringify({kind:'fixed', id:fs.id, fromDay:dayIndexFromDate(dateStr), len, grabOffset:e.offsetY}));
+    el.classList.add('dragging');
+  });
+  el.addEventListener('dragend', ()=> el.classList.remove('dragging'));
+  el.addEventListener('click', e=>{ e.stopPropagation(); openFixedDetailModal(fs, startSlot, len); });
+  return el;
+}
+
+function makeTaskBlock(a){
+  const t = taskById(a.taskId);
+  if(!t) return null;
+  const visStart = Math.max(a.startSlot, viewStart);
+  const visEnd = Math.min(a.startSlot+a.len, viewEnd);
+  if(visEnd <= visStart) return null; // fully outside the visible range
+  const el = document.createElement('div');
+  const doneCount = countDone(a);
+  const isDone = doneCount===a.len;
+  const isLate = a.phase==='study-late';
+  el.className = 'block task' + (isDone?' done':'') + (a.overdue?' overdue':'') + (isLate?' overdue':'');
+  el.style.top=((visStart-viewStart)*ROWH)+'px';
+  el.style.height=((visEnd-visStart)*ROWH-2)+'px';
+  el.style.background = t.color;
+  el.style.color = '#fff';
+  el.draggable = true;
+  el.dataset.assignId = a.id;
+  const timeRange = slotLabel(a.startSlot)+'–'+slotLabel(a.startSlot+a.len);
+
+  if(t.type==='exam'){
+    const chapName = getChapterName(t, a.sessionIndex);
+    let phaseText;
+    if(a.phase==='revision-final') phaseText = '🎯 Final Revision: '+chapName;
+    else if(a.phase==='revision') phaseText = '🔁 Quick Revision: '+chapName;
+    else phaseText = '📘 Deep Study: '+chapName + (isLate ? ' (late)' : '');
+    el.title = t.name + ' — ' + phaseText + ' — ' + timeRange + ' — click for details';
+    el.innerHTML = `<span class="bname">${t.name}</span><span class="bphase">${phaseText}</span>`;
+  } else {
+    el.title = t.name + ' — part ' + (a.sessionIndex+1) + ' — ' + timeRange + ' — click for details';
+    el.innerHTML = `<span class="bname">${t.name}</span><span class="btime">${timeRange} · part ${a.sessionIndex+1}</span>`;
+  }
+
+  el.addEventListener('dragstart', e=>{
+    e.dataTransfer.setData('text/plain', JSON.stringify({kind:'task', id:a.id, grabOffset:e.offsetY}));
+    el.classList.add('dragging');
+  });
+  el.addEventListener('dragend', ()=> el.classList.remove('dragging'));
+  el.addEventListener('click', e=>{ e.stopPropagation(); openBlockModal(a); });
+  return el;
+}
+
+function countDone(a){
+  let c=0;
+  for(let i=a.startSlot;i<a.startSlot+a.len;i++){
+    if(completedSlots.has(a.date+'|'+i)) c++;
+  }
+  return c;
+}
+
+function hexToSoft(hex){
+  const {r,g,b} = hexToRgb(hex);
+  return `rgba(${r},${g},${b},0.18)`;
+}
+function darken(hex){
+  const {r,g,b}=hexToRgb(hex);
+  return `rgb(${Math.round(r*0.55)},${Math.round(g*0.55)},${Math.round(b*0.55)})`;
+}
+function hexToRgb(hex){
+  hex = hex.replace('#','');
+  if(hex.length===3) hex = hex.split('').map(c=>c+c).join('');
+  const num = parseInt(hex,16);
+  return {r:(num>>16)&255, g:(num>>8)&255, b:num&255};
+}
+
+/* ---------- drag/drop handling ---------- */
+function handleDrop(payload, dateStr, colEl, evt){
+  const rect = colEl.getBoundingClientRect();
+  const y = evt.clientY - rect.top;
+  const grabOffset = payload.grabOffset || 0;
+
+  if(payload.kind === 'task'){
+    const a = assignments.find(x=>x.id===payload.id);
+    if(!a) return;
+    let slot = viewStart + Math.round((y - grabOffset)/ROWH);
+    slot = Math.max(0, Math.min(SLOTS_PER_DAY-a.len, slot));
+
+    const others = assignments.filter(x=>x.id!==a.id);
+    const {fixed, task:taskRow} = gridForDate(dateStr, others);
+    let ok = true;
+    for(let k=0;k<a.len;k++){ if(!isFree(fixed,taskRow,slot+k)){ ok=false; break; } }
+    let finalSlot = ok ? slot : findFreeRun(fixed, taskRow, a.len, 0, SLOTS_PER_DAY);
+
+    if(finalSlot===-1){
+      showToast("No free space there — try another spot.");
+      return;
+    }
+    a.date = dateStr;
+    a.startSlot = finalSlot;
+    const due = variableTasks.find(t=>t.id===a.taskId);
+    a.overdue = due ? (parseDate(dateStr) > parseDate(due.dueDate)) : false;
+    renderWeek();
+    showToast("Moved to " + fmtDateShort(parseDate(dateStr)) + " at " + slotLabel(finalSlot));
+    return;
+  }
+
+  if(payload.kind === 'fixed'){
+    const fs = fixedSchedules.find(x=>x.id===payload.id);
+    if(!fs) return;
+    const len = payload.len;
+    let slot = viewStart + Math.round((y - grabOffset)/ROWH);
+    slot = Math.max(0, Math.min(SLOTS_PER_DAY-len, slot)); // dropped here always becomes non-wrapping
+
+    const newDay = dayIndexFromDate(dateStr);
+    // free-space check against every OTHER fixed schedule + variable tasks on that day (ignore the entry being moved)
+    const occ = fixedOccupancyForDow(newDay).map(f => (f && f.id===fs.id) ? null : f);
+    const {task:taskRow} = gridForDate(dateStr, assignments);
+    let ok = true;
+    for(let k=0;k<len;k++){ if(occ[slot+k] || taskRow[slot+k]){ ok=false; break; } }
+    let finalSlot = slot;
+    if(!ok){
+      finalSlot = -1;
+      for(let i=0;i<=SLOTS_PER_DAY-len;i++){
+        let free=true;
+        for(let k=0;k<len;k++){ if(occ[i+k] || taskRow[i+k]){ free=false; break; } }
+        if(free){ finalSlot=i; break; }
+      }
+    }
+    if(finalSlot===-1){
+      showToast("No free space there — try another spot.");
+      return;
+    }
+
+    const newStart = slotToTime(finalSlot);
+    const newEnd = slotToTime(finalSlot+len);
+    if(fs.days.length<=1){
+      fs.days = [newDay];
+      fs.start = newStart;
+      fs.end = newEnd;
+    } else {
+      fs.days = fs.days.filter(d=>d!==payload.fromDay);
+      fixedSchedules.push({id:uid(), name:fs.name, days:[newDay], start:newStart, end:newEnd});
+    }
+    renderFixedSheet();
+    // note: we deliberately do NOT call runScheduler() here — that would wipe out any
+    // variable task blocks you've already dragged into place. Use "Generate schedule"
+    // on the Variable Tasks tab if you want everything fully re-optimised after this change.
+    renderWeek();
+    showToast(fs.name + " moved to " + DAY_NAMES[newDay] + " " + newStart);
+    return;
+  }
+}
+
+/* ---------- pomodoro / completion modal ---------- */
+let timerInterval=null;
+function openBlockModal(a){
+  const t = taskById(a.taskId);
+  if(!t) return;
+  const overlay = document.getElementById('modalOverlay');
+  const box = document.getElementById('modalBox');
+  const now = new Date();
+  const blockDate = parseDate(a.date);
+  const isToday = dateKey(now)===a.date;
+  const slotStartMin = a.startSlot*30, slotEndMin = (a.startSlot+a.len)*30;
+  const nowMin = now.getHours()*60+now.getMinutes();
+  const isNow = isToday && nowMin>=slotStartMin && nowMin<slotEndMin;
+  const isPast = blockDate < startOfDay(now) || (isToday && nowMin>=slotEndMin);
+  const doneCount = countDone(a);
+  const allDone = doneCount===a.len;
+  const timeRange = slotLabel(a.startSlot)+'–'+slotLabel(a.startSlot+a.len);
+
+  let subtitle;
+  if(t.type==='exam'){
+    const chapName = getChapterName(t, a.sessionIndex);
+    if(a.phase==='revision-final') subtitle = '🎯 Final Revision: ' + chapName;
+    else if(a.phase==='revision') subtitle = '🔁 Quick Revision: ' + chapName;
+    else subtitle = '📘 Deep Study: ' + chapName + (a.phase==='study-late' ? ' (running late)' : '');
+  } else {
+    subtitle = 'Part ' + (a.sessionIndex+1);
+  }
+
+  const detailHeader = `
+    <h3>${t.name}</h3>
+    <div class="sub" style="font-weight:700;color:${t.color};margin-bottom:2px;">${subtitle}</div>
+    <div class="sub">${fmtDateShort(blockDate)} · ${timeRange} · ${a.len*30} min${a.len>1 && doneCount>0 ? ' · '+doneCount+'/'+a.len+' done':''}</div>
+  `;
+
+  clearInterval(timerInterval);
+
+  let bodyHtml;
+  if(allDone){
+    bodyHtml = `<div class="modal-actions"><button class="btn btn-ghost" id="mClose">Close</button></div>`;
+  } else if(isNow){
+    bodyHtml = `
+      <div class="timer-ring" id="ringTime">30:00</div>
+      <div class="modal-actions">
+        <button class="btn btn-accent" id="mComplete" disabled>Mark block complete</button>
+        <button class="btn btn-ghost" id="mFastForward">⏩ Fast-forward (demo)</button>
+        <button class="btn btn-ghost" id="mClose">Close</button>
+      </div>`;
+  } else if(isPast){
+    bodyHtml = `
+      <div class="modal-actions">
+        <button class="btn btn-accent" id="mComplete">Log as done (catch up)</button>
+        <button class="btn btn-ghost" id="mClose">Close</button>
+      </div>`;
+  } else {
+    bodyHtml = `
+      <div class="sub">Come back during this block to start your focus timer — or drag it elsewhere if you'd rather study sooner.</div>
+      <div class="modal-actions"><button class="btn btn-ghost" id="mClose">Close</button></div>`;
+  }
+
+  box.innerHTML = detailHeader + bodyHtml + `<div style="margin-top:10px;"><button class="btn-textlink" id="mDeleteTask">Delete this whole task</button></div>`;
+
+  if(isNow){
+    let secs = 30*60;
+    const ring = ()=> document.getElementById('ringTime');
+    function tick(){
+      secs--;
+      const m=String(Math.floor(secs/60)).padStart(2,'0'), s=String(secs%60).padStart(2,'0');
+      if(ring()) ring().textContent = m+':'+s;
+      if(secs<=60){ const btn=document.getElementById('mComplete'); if(btn) btn.disabled=false; }
+      if(secs<=0){ clearInterval(timerInterval); }
+    }
+    timerInterval = setInterval(tick,1000);
+    const ffBtn = document.getElementById('mFastForward');
+    if(ffBtn) ffBtn.onclick = ()=>{ secs=60; };
+  }
+  const completeBtn = document.getElementById('mComplete');
+  if(completeBtn) completeBtn.onclick = ()=>{
+    completeOneBlock(a);
+    if(t.type==='exam' && a.phase==='revision'){
+      showConfidenceStep(a);
+    } else {
+      closeModal();
+    }
+  };
+  document.getElementById('mClose').onclick = closeModal;
+  document.getElementById('mDeleteTask').onclick = ()=>{
+    if(confirm('Delete "'+t.name+'" and all its scheduled blocks?')){
+      variableTasks = variableTasks.filter(x=>x.id!==t.id);
+      assignments = assignments.filter(x=>x.taskId!==t.id);
+      renderVarSheet();
+      closeModal();
+      renderWeek();
+      renderMonth();
+      showToast('"'+t.name+'" deleted.');
+    }
+  };
+  overlay.classList.add('show');
+}
+
+function showConfidenceStep(a){
+  const t = taskById(a.taskId);
+  const box = document.getElementById('modalBox');
+  const chapName = getChapterName(t, a.sessionIndex);
+  box.innerHTML = `
+    <h3>Nice work! 🎉</h3>
+    <div class="sub">How confident do you feel about <b>${chapName}</b> right now?</div>
+    <div class="star-rate" id="confStars">${[1,2,3,4,5].map(n=>`<span class="star-btn" data-v="${n}">★</span>`).join('')}</div>
+    <div class="sub" style="margin-top:6px;">1★ = need to revisit very soon &nbsp;·&nbsp; 5★ = feeling solid</div>
+    <div class="modal-actions"><button class="btn btn-ghost" id="mSkip">Skip</button></div>
+  `;
+  document.querySelectorAll('#confStars .star-btn').forEach(starEl=>{
+    starEl.addEventListener('click', ()=> handleConfidenceRating(a, Number(starEl.dataset.v)));
+  });
+  document.getElementById('mSkip').onclick = closeModal;
+}
+
+function handleConfidenceRating(a, rating){
+  const t = taskById(a.taskId);
+  t.chapterConfidence = t.chapterConfidence || {};
+  t.chapterConfidence[a.sessionIndex] = rating;
+  const placedOn = scheduleFollowUpRevision(t, a.sessionIndex, rating);
+  closeModal();
+  renderWeek();
+  renderMonth();
+  const chapName = getChapterName(t, a.sessionIndex);
+  if(placedOn){
+    const msg = (rating>=4)
+      ? ('Nice — booked a quick final revision for '+chapName+' on '+fmtDateShort(placedOn)+'.')
+      : ('Got it — another revision for '+chapName+' is booked on '+fmtDateShort(placedOn)+' (within '+(rating*24)+'h).');
+    showToast(msg);
+  } else {
+    showToast('Rated '+rating+'★, but your schedule is full — couldn\'t find room for a follow-up revision.');
+  }
+}
+
+function openFixedDetailModal(fs, startSlot, len){
+  const overlay = document.getElementById('modalOverlay');
+  const box = document.getElementById('modalBox');
+  clearInterval(timerInterval);
+  box.innerHTML = `
+    <h3>${fs.name}</h3>
+    <div class="sub" style="font-weight:700;color:var(--grey);margin-bottom:2px;">Fixed schedule</div>
+    <div class="sub">${fs.days.map(d=>DAY_NAMES[d]).join(', ')} · ${slotLabel(startSlot)}–${slotLabel(startSlot+len)}</div>
+    <div class="sub">Drag this block on the calendar to reschedule it — or edit it directly on the Fixed Schedule tab.</div>
+    <div class="modal-actions"><button class="btn btn-ghost" id="mClose">Close</button></div>
+  `;
+  document.getElementById('mClose').onclick = closeModal;
+  overlay.classList.add('show');
+}
+
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('show');
+  document.getElementById('modalBox').style.width = '';
+  clearInterval(timerInterval);
+}
+function completeOneBlock(a){
+  // mark the first not-yet-done slot within this assignment
+  for(let i=a.startSlot;i<a.startSlot+a.len;i++){
+    const key=a.date+'|'+i;
+    if(!completedSlots.has(key)){ completedSlots.add(key); break; }
+  }
+  updateGamification();
+  renderWeek();
+}
+
+/* ---------- study settings ---------- */
+function openSettingsModal(){
+  const overlay = document.getElementById('modalOverlay');
+  const box = document.getElementById('modalBox');
+  clearInterval(timerInterval);
+  box.innerHTML = `
+    <h3>Study Settings</h3>
+    <div class="sub">Caps the auto-scheduler tries to respect, so it spreads work out instead of burning you out. (It'll only go over if there's truly no other room before a deadline.)</div>
+    <div style="text-align:left;margin-top:14px;">
+      <label style="font-size:11.5px;font-weight:700;color:var(--ink-soft);">Max study/homework time on school days</label>
+      <div style="display:flex;align-items:center;gap:8px;margin:4px 0 14px;">
+        <input type="number" id="setSchoolCap" min="1" max="12" step="0.5" value="${schoolDayCapHours}" style="width:70px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;">
+        <span style="font-size:12.5px;color:var(--ink-soft);">hours / day</span>
+      </div>
+      <label style="font-size:11.5px;font-weight:700;color:var(--ink-soft);">Max study/homework time on non-school days</label>
+      <div style="display:flex;align-items:center;gap:8px;margin:4px 0 4px;">
+        <input type="number" id="setNonSchoolCap" min="1" max="14" step="0.5" value="${nonSchoolDayCapHours}" style="width:70px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;">
+        <span style="font-size:12.5px;color:var(--ink-soft);">hours / day</span>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-accent" id="setSave">Save &amp; re-schedule</button>
+      <button class="btn btn-ghost" id="mClose">Cancel</button>
+    </div>
+  `;
+  document.getElementById('mClose').onclick = closeModal;
+  document.getElementById('setSave').onclick = ()=>{
+    schoolDayCapHours = Math.max(0.5, Number(document.getElementById('setSchoolCap').value) || 4);
+    nonSchoolDayCapHours = Math.max(0.5, Number(document.getElementById('setNonSchoolCap').value) || 6);
+    runScheduler();
+    closeModal();
+    showToast('Settings saved — calendar re-scheduled.');
+  };
+  overlay.classList.add('show');
+}
+
+/* ---------- quick add task on calendar ---------- */
+function openAddTaskModal(dateStr, slot){
+  const overlay = document.getElementById('modalOverlay');
+  const box = document.getElementById('modalBox');
+  clearInterval(timerInterval);
+  const randColor = TASK_PALETTE[Math.floor(Math.random()*TASK_PALETTE.length)];
+  box.innerHTML = `
+    <h3>Quick add</h3>
+    <div class="sub">${fmtDateShort(parseDate(dateStr))} · starting ${slotLabel(slot)}</div>
+    <div style="text-align:left;margin-top:10px;">
+      <label style="font-size:11.5px;font-weight:700;color:var(--ink-soft);">Task name</label>
+      <input type="text" id="qtName" placeholder="e.g. Read library book" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;margin:4px 0 10px;box-sizing:border-box;">
+      <div style="display:flex;gap:10px;align-items:flex-end;">
+        <div style="flex:1;">
+          <label style="font-size:11.5px;font-weight:700;color:var(--ink-soft);">Length (×30min)</label>
+          <input type="number" id="qtBlocks" min="1" value="1" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;margin:4px 0 10px;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:11.5px;font-weight:700;color:var(--ink-soft);">Colour</label>
+          <input type="color" id="qtColor" value="${randColor}" style="display:block;width:44px;height:38px;border:1px solid var(--line);border-radius:8px;padding:2px;margin:4px 0 10px;cursor:pointer;">
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-accent" id="qtAdd">+ Add to calendar</button>
+      <button class="btn btn-ghost" id="mClose">Cancel</button>
+    </div>
+  `;
+  document.getElementById('mClose').onclick = closeModal;
+  setTimeout(()=> document.getElementById('qtName').focus(), 50);
+  document.getElementById('qtAdd').onclick = ()=>{
+    const name = document.getElementById('qtName').value.trim() || 'New task';
+    const len = Math.max(1, Number(document.getElementById('qtBlocks').value) || 1);
+    const color = document.getElementById('qtColor').value;
+
+    const realNow = new Date();
+    const todayKeyNow = dateKey(realNow);
+    if(dateStr < todayKeyNow){
+      showToast("That date's already passed — pick today or later.");
+      return;
+    }
+    const nowSlot = realNow.getHours()*2 + (realNow.getMinutes()>=30?1:0);
+    let searchSlot = slot;
+    if(dateStr === todayKeyNow){
+      searchSlot = Math.max(slot, nowSlot + NOW_BUFFER_SLOTS); // at least 1 hour of notice
+    }
+
+    const {fixed, task:taskRow} = gridForDate(dateStr, assignments);
+    let finalSlot = searchSlot;
+    let free = true;
+    for(let k=0;k<len;k++){ if(!isFree(fixed,taskRow,finalSlot+k)){ free=false; break; } }
+    if(!free){
+      finalSlot = findFreeRun(fixed, taskRow, len, searchSlot, SLOTS_PER_DAY);
+      if(finalSlot===-1){
+        showToast("No free space left that day for a "+len+"-block task.");
+        return;
+      }
+    }
+    const newTask = {id:uid(), name, type:'task', dueDate:dateStr, durationMin:len*30, sessions:1, priority:variableTasks.length+1, color};
+    variableTasks.push(newTask);
+    assignments.push({id:uid(), taskId:newTask.id, date:dateStr, startSlot:finalSlot, len, sessionIndex:0, phase:'task', overdue:false});
+    renderVarSheet();
+    renderWeek();
+    renderMonth();
+    closeModal();
+    showToast('"'+name+'" added at '+slotLabel(finalSlot)+(finalSlot!==slot?' (adjusted to give you planning time)':''));
+  };
+  overlay.classList.add('show');
+}
+
+/* ---------- gamification ---------- */
+function updateGamification(){
+  const starCount = completedSlots.size;
+  document.getElementById('starVal').textContent = starCount;
+  const earnedStamps = Math.floor(starCount/4);
+  while(stamps.length < earnedStamps){
+    stamps.push(ANIMALS[Math.floor(Math.random()*ANIMALS.length)]);
+  }
+  // streak: consecutive days (ending today) with >=1 completed slot
+  let streak=0;
+  let d = startOfDay(new Date());
+  while(true){
+    const ds = dateKey(d);
+    const hasOne = [...completedSlots].some(k=>k.startsWith(ds+'|'));
+    if(hasOne){ streak++; d=addDays(d,-1); } else break;
+  }
+  document.getElementById('streakVal').textContent = streak;
+  renderStamps();
+}
+function renderStamps(){
+  const grid = document.getElementById('stampGrid');
+  grid.innerHTML='';
+  const counts = {};
+  stamps.forEach(a=> counts[a]=(counts[a]||0)+1);
+  const uniq = Object.keys(counts);
+  if(uniq.length===0){
+    for(let i=0;i<3;i++){
+      const s=document.createElement('div'); s.className='stamp empty'; s.textContent='?';
+      grid.appendChild(s);
+    }
+    return;
+  }
+  uniq.forEach(a=>{
+    const s=document.createElement('div'); s.className='stamp';
+    s.innerHTML = a + (counts[a]>1?`<span class="ct">${counts[a]}</span>`:'');
+    grid.appendChild(s);
+  });
+}
+
+/* ---------- month view ---------- */
+function renderMonth(){
+  const grid = document.getElementById('monthGrid');
+  grid.innerHTML='';
+  DAY_NAMES.forEach(n=>{
+    const h=document.createElement('div'); h.className='month-dayname'; h.textContent=n;
+    grid.appendChild(h);
+  });
+  const first = new Date(monthCursor.getFullYear(), monthCursor.getMonth(),1);
+  const startGrid = mondayOf(first);
+  const todayStr = dateKey(new Date());
+  for(let i=0;i<42;i++){
+    const d = addDays(startGrid,i);
+    const ds = dateKey(d);
+    const cell = document.createElement('div');
+    cell.className='month-cell' + (d.getMonth()!==monthCursor.getMonth()?' othermonth':'') + (ds===todayStr?' today':'');
+    cell.innerHTML = `<div class="mnum">${d.getDate()}</div>`;
+    variableTasks.filter(t=>t.dueDate===ds).forEach(t=>{
+      const chip=document.createElement('div');
+      chip.className='month-chip';
+      chip.style.background = hexToSoft(t.color);
+      chip.style.color = darken(t.color);
+      chip.textContent = '📌 '+t.name;
+      chip.onclick = ()=>{ weekStart=mondayOf(d); switchToWeek(); };
+      cell.appendChild(chip);
+    });
+    cell.addEventListener('dblclick', ()=>{ weekStart=mondayOf(d); switchToWeek(); });
+    grid.appendChild(cell);
+  }
+  document.getElementById('weekNavWrap').style.visibility = currentView==='month' ? 'hidden':'visible';
+}
+
+function switchToWeek(){
+  currentView='week';
+  document.getElementById('vtWeek').classList.add('active');
+  document.getElementById('vtMonth').classList.remove('active');
+  document.getElementById('weekView').style.display='';
+  document.getElementById('monthView').style.display='none';
+  document.getElementById('weekNavWrap').style.visibility='visible';
+  renderWeek();
+}
+
+/* ---------- unscheduled / banner ---------- */
+function renderUnscheduledPanel(){
+  const panel = document.getElementById('unscheduledPanel');
+  const list = document.getElementById('unscheduledList');
+  const banner = document.getElementById('scheduleBanner');
+  if(lastUnscheduled.length===0){
+    panel.style.display='none';
+    banner.innerHTML = `<div class="banner ok"><div><b>All sessions placed ✅</b>Every task block found a free slot within its study window.</div></div>`;
+    return;
+  }
+  panel.style.display='';
+  list.innerHTML = lastUnscheduled.map(u=>`<div style="margin-bottom:4px;">• <b>${u.taskName}</b> — couldn't fit ${u.detail ? u.detail : ('a '+u.len+'×30min session')} (${u.len}×30min)</div>`).join('');
+  banner.innerHTML = `<div class="banner warn"><div><b>${lastUnscheduled.length} session(s) couldn't be placed</b>Your free time before the deadline is full. Try fewer sessions, a longer due date, or fewer fixed commitments.</div></div>`;
+}
+
+/* ---------- fixed schedule sheet ---------- */
+function renderFixedSheet(){
+  const body = document.getElementById('fixedBody');
+  body.innerHTML='';
+  fixedSchedules.forEach(fs=>{
+    body.appendChild(fixedRow(fs));
+  });
+}
+function fixedRow(fs){
+  const tr=document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" value="${fs.name}" data-f="name"></td>
+    <td><div class="daychips"></div></td>
+    <td><input type="time" value="${fs.start}" data-f="start"></td>
+    <td><input type="time" value="${fs.end}" data-f="end"></td>
+    <td><button class="row-del">✕</button></td>
+  `;
+  const chipWrap = tr.querySelector('.daychips');
+  DAY_NAMES.forEach((dn,idx)=>{
+    const c=document.createElement('button');
+    c.className='daychip'+(fs.days.includes(idx)?' on':'');
+    c.textContent=dn[0];
+    c.onclick=()=>{
+      if(fs.days.includes(idx)) fs.days=fs.days.filter(x=>x!==idx);
+      else fs.days.push(idx);
+      c.classList.toggle('on');
+    };
+    chipWrap.appendChild(c);
+  });
+  tr.querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('input', ()=>{ fs[inp.dataset.f]=inp.value; });
+  });
+  tr.querySelector('.row-del').onclick = ()=>{
+    fixedSchedules = fixedSchedules.filter(x=>x.id!==fs.id);
+    tr.remove();
+  };
+  return tr;
+}
+
+/* ---------- variable tasks sheet ---------- */
+function renderVarSheet(){
+  const body=document.getElementById('varBody');
+  body.innerHTML='';
+  variableTasks.forEach(t=> body.appendChild(varRow(t)));
+}
+function varRow(t){
+  const tr=document.createElement('tr');
+  const isExam = t.type==='exam';
+  const totalMin = isExam ? examChapters(t).reduce((s,c)=>s+(Number(c.durationMin)||0),0) : 0;
+  const durationCell = isExam
+    ? `<button class="btn btn-ghost" id="editChapBtn" style="font-size:11.5px;padding:6px 10px;white-space:nowrap;">📝 Edit chapters (${examChapters(t).length})</button><div style="font-size:10px;color:var(--ink-faint);margin-top:3px;">${totalMin} min total</div>`
+    : `<input type="number" min="5" step="5" value="${t.durationMin||60}" data-f="durationMin" style="width:70px"> <span style="font-size:11px;color:var(--ink-faint);">min</span>`;
+  const sessionsCell = isExam
+    ? `<span style="font-size:11.5px;color:var(--ink-faint);">set via chapters</span>`
+    : `<input type="number" min="1" value="${t.sessions}" data-f="sessions" style="width:60px">`;
+  tr.innerHTML = `
+    <td><input type="text" value="${t.name}" data-f="name"></td>
+    <td>
+      <select data-f="type" style="border:1px solid var(--line);border-radius:6px;padding:6px 7px;font-size:13px;width:100%;background:#fff;">
+        <option value="task" ${!isExam?'selected':''}>Task</option>
+        <option value="exam" ${isExam?'selected':''}>Exam / Test</option>
+      </select>
+    </td>
+    <td><input type="date" value="${t.dueDate}" data-f="dueDate"></td>
+    <td>${durationCell}</td>
+    <td>${sessionsCell}</td>
+    <td><input type="number" min="1" value="${t.priority}" data-f="priority" style="width:60px"></td>
+    <td><input type="color" class="swatchpick" value="${t.color}" data-f="color"></td>
+    <td><button class="row-del">✕</button></td>
+  `;
+  tr.querySelectorAll('input, select').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      const f=inp.dataset.f;
+      t[f] = (f==='durationMin'||f==='sessions'||f==='priority') ? Number(inp.value) : inp.value;
+    });
+    inp.addEventListener('change', ()=>{
+      const f=inp.dataset.f;
+      t[f] = (f==='durationMin'||f==='sessions'||f==='priority') ? Number(inp.value) : inp.value;
+      if(f==='type'){
+        if(t.type==='exam' && !t.chapters) t.chapters = [{name:'Chapter 1', durationMin:60, difficulty:3}];
+        renderVarSheet(); // swap Duration/Sessions <-> Chapters editor for this row
+      }
+    });
+  });
+  const editBtn = tr.querySelector('#editChapBtn');
+  if(editBtn) editBtn.onclick = ()=> openChaptersModal(t);
+  tr.querySelector('.row-del').onclick=()=>{
+    variableTasks = variableTasks.filter(x=>x.id!==t.id);
+    tr.remove();
+  };
+  return tr;
+}
+
+/* ---------- chapters table modal (exam / test tasks) ---------- */
+function openChaptersModal(task){
+  if(!Array.isArray(task.chapters) || !task.chapters.length){
+    task.chapters = [{name:'Chapter 1', durationMin:60, difficulty:3}];
+  }
+  const overlay = document.getElementById('modalOverlay');
+  const box = document.getElementById('modalBox');
+  clearInterval(timerInterval);
+  box.style.width = '520px';
+  box.innerHTML = `
+    <h3>${task.name} — chapters</h3>
+    <div class="sub">List each chapter, how many minutes you need to study it, and how tough it feels (1-5 stars). DayStack studies harder chapters first and uses this to size each revision pass.</div>
+    <div style="max-height:280px;overflow-y:auto;margin-top:12px;">
+      <table class="sheet" id="chapTable" style="width:100%;">
+        <thead><tr><th>Chapter</th><th style="width:90px">Duration</th><th style="width:120px">Difficulty</th><th style="width:32px"></th></tr></thead>
+        <tbody id="chapBody"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px;text-align:left;">
+      <button class="btn btn-ghost" id="chapAddRow" style="font-size:12px;padding:7px 12px;">+ Add chapter</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-accent" id="chapSave">Save chapters</button>
+      <button class="btn btn-ghost" id="mClose">Cancel</button>
+    </div>
+  `;
+  function renderChapRows(){
+    const body = document.getElementById('chapBody');
+    body.innerHTML='';
+    task.chapters.forEach((c, idx)=>{
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td><input type="text" value="${c.name}" data-cf="name" style="width:100%;"></td>
+        <td><input type="number" min="5" step="5" value="${c.durationMin}" data-cf="durationMin" style="width:70px;"> <span style="font-size:10px;color:var(--ink-faint);">min</span></td>
+        <td><div class="star-rate small" data-idx="${idx}">${[1,2,3,4,5].map(n=>`<span class="star-btn ${n<=(c.difficulty||0)?'lit':''}" data-v="${n}">★</span>`).join('')}</div></td>
+        <td><button class="row-del">✕</button></td>
+      `;
+      row.querySelector('input[data-cf="name"]').addEventListener('input', e=>{ c.name = e.target.value; });
+      row.querySelector('input[data-cf="durationMin"]').addEventListener('input', e=>{ c.durationMin = Number(e.target.value)||30; });
+      row.querySelectorAll('.star-btn').forEach(starEl=>{
+        starEl.addEventListener('click', ()=>{
+          c.difficulty = Number(starEl.dataset.v);
+          renderChapRows();
+        });
+      });
+      row.querySelector('.row-del').onclick = ()=>{
+        if(task.chapters.length<=1){ showToast("An exam needs at least one chapter."); return; }
+        task.chapters.splice(idx,1);
+        renderChapRows();
+      };
+      body.appendChild(row);
+    });
+  }
+  renderChapRows();
+  document.getElementById('chapAddRow').onclick = ()=>{
+    task.chapters.push({name:'Chapter '+(task.chapters.length+1), durationMin:60, difficulty:3});
+    renderChapRows();
+  };
+  document.getElementById('mClose').onclick = ()=>{ box.style.width=''; closeModal(); };
+  document.getElementById('chapSave').onclick = ()=>{
+    box.style.width='';
+    closeModal();
+    renderVarSheet();
+    showToast('Chapters saved for "'+task.name+'".');
+  };
+  overlay.classList.add('show');
+}
+
+/* ---------- toast ---------- */
+let toastTimer=null;
+function showToast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),2400);
+}
+
+/* ---------- tabs ---------- */
+document.getElementById('tabBar').addEventListener('click', e=>{
+  const btn = e.target.closest('.tab-btn');
+  if(!btn) return;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+btn.dataset.page).classList.add('active');
+});
+
+/* ---------- nav buttons ---------- */
+document.getElementById('prevBtn').onclick = ()=>{
+  if(currentView==='week'){ weekStart=addDays(weekStart,-7); renderWeek(); }
+};
+document.getElementById('nextBtn').onclick = ()=>{
+  if(currentView==='week'){ weekStart=addDays(weekStart,7); renderWeek(); }
+};
+document.getElementById('todayBtn').onclick = ()=>{
+  if(currentView==='week'){ weekStart=mondayOf(new Date()); renderWeek(); scrollToWaking(); }
+  else { monthCursor=new Date(); monthCursor.setDate(1); renderMonth(); }
+};
+document.getElementById('hideSleepBtn').onclick = ()=>{
+  const btn = document.getElementById('hideSleepBtn');
+  if(viewStart===0 && viewEnd===SLOTS_PER_DAY){
+    viewStart=14; viewEnd=46; // 07:00 - 23:00
+    btn.textContent='☀️ Show full day';
+  } else {
+    viewStart=0; viewEnd=SLOTS_PER_DAY;
+    btn.textContent='🌙 Hide sleep';
+  }
+  if(currentView==='week') renderWeek();
+};
+document.getElementById('settingsBtn').onclick = openSettingsModal;
+document.getElementById('vtWeek').onclick = switchToWeek;
+document.getElementById('vtMonth').onclick = ()=>{
+  currentView='month';
+  document.getElementById('vtMonth').classList.add('active');
+  document.getElementById('vtWeek').classList.remove('active');
+  document.getElementById('weekView').style.display='none';
+  document.getElementById('monthView').style.display='';
+  document.getElementById('weekNavWrap').style.visibility='hidden';
+  renderMonth();
+};
+
+document.getElementById('addFixedRow').onclick = ()=>{
+  const fs={id:uid(), name:'New schedule', days:[0], start:'08:00', end:'09:00'};
+  fixedSchedules.push(fs);
+  document.getElementById('fixedBody').appendChild(fixedRow(fs));
+};
+document.getElementById('saveFixed').onclick = ()=>{ runScheduler(); showToast('Fixed schedule saved — calendar updated.'); };
+
+document.getElementById('addVarRow').onclick = ()=>{
+  const t={id:uid(), name:'New task', type:'task', dueDate:dateKey(addDays(new Date(),3)), durationMin:60, sessions:1, priority:variableTasks.length+1, color:TASK_PALETTE[variableTasks.length%TASK_PALETTE.length]};
+  variableTasks.push(t);
+  document.getElementById('varBody').appendChild(varRow(t));
+};
+document.getElementById('genSchedule').onclick = ()=>{
+  variableTasks.forEach((t,i)=>{ if(!t.color) t.color=TASK_PALETTE[i%TASK_PALETTE.length]; });
+  runScheduler();
+  showToast('Schedule generated!');
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.tab-btn[data-page="dashboard"]').classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-dashboard').classList.add('active');
+  switchToWeek();
+};
+
+/* ---------- checklists ---------- */
+function renderChecklist(containerId, list){
+  const el = document.getElementById(containerId);
+  el.innerHTML='';
+  if(list.length===0){
+    el.innerHTML = '<div class="checklist-empty">Nothing here yet.</div>';
+    return;
+  }
+  list.forEach(item=>{
+    const row = document.createElement('div');
+    row.className = 'checklist-item' + (item.done?' done':'');
+    row.innerHTML = `<input type="checkbox" ${item.done?'checked':''}><span class="ctext">${escapeHtml(item.text)}</span><button class="cdel">✕</button>`;
+    row.querySelector('input').addEventListener('change', e=>{
+      item.done = e.target.checked;
+      row.classList.toggle('done', item.done);
+    });
+    row.querySelector('.cdel').addEventListener('click', ()=>{
+      const idx=list.indexOf(item);
+      if(idx>-1) list.splice(idx,1);
+      renderChecklist(containerId, list);
+    });
+    el.appendChild(row);
+  });
+}
+function escapeHtml(s){
+  const d=document.createElement('div'); d.textContent=s; return d.innerHTML;
+}
+function wireChecklistInput(inputId, containerId, list){
+  const input = document.getElementById(inputId);
+  input.addEventListener('keydown', e=>{
+    if(e.key==='Enter' && input.value.trim()){
+      list.push({id:uid(), text:input.value.trim(), done:false});
+      input.value='';
+      renderChecklist(containerId, list);
+    }
+  });
+}
+
+function scrollToWaking(){
+  const wrap = document.getElementById('weekWrap');
+  wrap.scrollTop = Math.max(0, (STUDY_START_SLOT-2-viewStart)*ROWH);
+}
+
+/* ---------- init ---------- */
+function init(){
+  renderFixedSheet();
+  renderVarSheet();
+  runScheduler();
+  updateGamification();
+  renderChecklist('weeklyChecklist', weeklyChecklist);
+  renderChecklist('dailyChecklist', dailyChecklist);
+  wireChecklistInput('weeklyChecklistInput','weeklyChecklist', weeklyChecklist);
+  wireChecklistInput('dailyChecklistInput','dailyChecklist', dailyChecklist);
+  switchToWeek();
+  scrollToWaking();
+  setInterval(renderWeek, 60000); // refresh "now" line every minute
+}
+init();
+</script>
+</body>
+</html>
